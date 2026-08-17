@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Nuzlocke Tracker — juegos y Boss Editor" />
   <title>Nuzlocke Tracker</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
 <header class="topbar">
@@ -28,7 +28,6 @@
   </section>
 </main>
 
-<!-- Selector de juego -->
 <div id="gameModal" class="modal" hidden><div class="modal-card">
   <div class="modal-head"><div><span class="eyebrow">NUEVO JUEGO</span><h2>Elige el juego</h2></div><button id="closeGameModal" class="modal-close">×</button></div>
   <label for="gameGeneration">Generación</label>
@@ -38,19 +37,18 @@
   <div class="modal-actions"><button id="cancelGame" class="secondary">Cancelar</button><button id="confirmGame" class="primary">Crear juego</button></div>
 </div></div>
 
-<!-- Creador de Boss -->
 <div id="bossModal" class="modal" hidden><div class="modal-card">
   <div class="modal-head"><div><span class="eyebrow">NUEVO BOSS</span><h2>Define el Boss</h2></div><button id="closeBossModal" class="modal-close">×</button></div>
   <label>Tipo de Boss</label><div id="bossTypeChoices" class="type-grid">
-    <button data-type="Líder de gimnasio">🥇<strong>Líder de gimnasio</strong><small>Un líder de gimnasio</small></button>
-    <button data-type="Alto Mando">👑<strong>Alto Mando</strong><small>Miembro del Alto Mando</small></button>
-    <button data-type="Rival">⚔️<strong>Rival</strong><small>Combate contra un rival</small></button>
-    <button data-type="Equipo enemigo">☠️<strong>Equipo enemigo</strong><small>Miembro o jefe del equipo</small></button>
+    <button type="button" data-type="Líder de gimnasio">🥇<strong>Líder de gimnasio</strong><small>Un líder de gimnasio</small></button>
+    <button type="button" data-type="Alto Mando">👑<strong>Alto Mando</strong><small>Miembro del Alto Mando</small></button>
+    <button type="button" data-type="Rival">⚔️<strong>Rival</strong><small>Combate contra un rival</small></button>
+    <button type="button" data-type="Equipo enemigo">☠️<strong>Equipo enemigo</strong><small>Miembro o jefe del equipo</small></button>
   </div>
   <label for="modalBossName">Nombre del Boss</label><input id="modalBossName" placeholder="Ej. Brock" maxlength="60">
   <label for="bossImage">Imagen del diseño <span class="muted">(opcional)</span></label><input id="bossImage" type="file" accept="image/*">
   <div id="imagePreview" class="image-preview">Sin imagen seleccionada</div>
-  <div class="modal-actions"><button id="cancelBoss" class="secondary">Cancelar</button><button id="confirmBoss" class="primary">Crear Boss</button></div>
+  <div class="modal-actions"><button type="button" id="cancelBoss" class="secondary">Cancelar</button><button type="button" id="confirmBoss" class="primary">Crear Boss</button></div>
 </div></div>
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 </body></html>
