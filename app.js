@@ -1,100 +1,20 @@
 const MAX_POKEMON = 721;
 const GEN_RANGES = {1:[1,151],2:[152,251],3:[252,386],4:[387,493],5:[494,649],6:[650,721]};
-const STORAGE_KEY = 'nuzlocke-boss-editor-v1';
-
-let pokemon = [];
-let bosses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-let selectedBoss = null;
-
-const $ = id => document.getElementById(id);
-const slug = id => String(id).padStart(3,'0');
-const sprite = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-
-function saveAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(bosses)); }
-function genOf(id){ for(const [g,[a,b]] of Object.entries(GEN_RANGES)) if(id>=a&&id<=b) return Number(g); return 0; }
-
-async function loadPokemon(){
-  // The list is generated from the National Dex IDs 001-721. Names/types are
-  // fetched from PokeAPI so the editor stays small while covering all Gen 1-6.
-  $('pokemonResults').innerHTML = '<div class="empty-team">Cargando Pokémon 001–721…</div>';
-  try{
-    const r = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${MAX_POKEMON}`);
-    const data = await r.json();
-    pokemon = data.results.map((p,i)=>({id:i+1,name:p.name}));
-    renderPokemon();
-  }catch(e){
-    pokemon = Array.from({length:MAX_POKEMON},(_,i)=>({id:i+1,name:`Pokémon #${slug(i+1)}`}));
-    renderPokemon();
-  }
-}
-
-function renderBosses(){
-  $('bossCount').textContent = bosses.length;
-  $('bossList').innerHTML = '';
-  bosses.forEach((b,i)=>{
-    const btn=document.createElement('button');
-    btn.className='boss-button'+(selectedBoss===i?' active':'');
-    btn.innerHTML=`<strong>${escapeHtml(b.name||`Boss ${i+1}`)}</strong><small>${b.team.length}/6 Pokémon</small>`;
-    btn.onclick=()=>selectBoss(i);
-    $('bossList').appendChild(btn);
-  });
-}
-
-function selectBoss(i){ selectedBoss=i; $('emptyState').hidden=true; $('bossEditor').hidden=false; renderBosses(); renderEditor(); }
-function createBoss(){ bosses.push({name:`Boss ${bosses.length+1}`,team:[]}); saveAll(); selectBoss(bosses.length-1); }
-
-function renderEditor(){
-  const b=bosses[selectedBoss]; if(!b) return;
-  $('bossName').value=b.name||''; $('teamCount').textContent=`${b.team.length}/6`;
-  $('team').innerHTML='';
-  if(!b.team.length) $('team').innerHTML='<div class="empty-team">Añade Pokémon desde el buscador de arriba.</div>';
-  b.team.forEach((member,index)=>{
-    const p=pokemon.find(x=>x.id===member.id)||{id:member.id,name:member.name};
-    const card=document.getElementById('teamCardTemplate').content.cloneNode(true);
-    const el=card.querySelector('.team-card');
-    card.querySelector('.sprite').src=sprite(p.id); card.querySelector('.sprite').alt=p.name;
-    card.querySelector('.poke-name').textContent=`#${slug(p.id)} ${cap(p.name)}`;
-    card.querySelector('.level').value=member.level||50;
-    card.querySelector('.ability').value=member.ability||'';
-    card.querySelector('.item').value=member.item||'';
-    card.querySelector('.moves').value=member.moves||'';
-    card.querySelector('.remove').onclick=()=>{b.team.splice(index,1);saveAll();renderEditor();};
-    ['level','ability','item','moves'].forEach(key=>card.querySelector('.'+key).oninput=e=>{member[key]=e.target.value;saveAll();});
-    $('team').appendChild(card);
-  });
-}
-
-function renderPokemon(){
-  const q=$('pokemonSearch').value.trim().toLowerCase();
-  const gf=$('generationFilter').value;
-  const b=bosses[selectedBoss];
-  const list=pokemon.filter(p=>{
-    const matchesQ=!q || p.name.includes(q) || String(p.id)===q.replace(/^#/,'') || slug(p.id)===q.replace(/^#/,'');
-    const matchesG=gf==='all'||String(genOf(p.id))===gf;
-    return matchesQ&&matchesG;
-  }).slice(0,60);
-  $('pokemonResults').innerHTML='';
-  if(!list.length){$('pokemonResults').innerHTML='<div class="empty-team">No se encontraron Pokémon.</div>';return;}
-  list.forEach(p=>{
-    const inTeam=b?.team.some(x=>x.id===p.id);
-    const btn=document.createElement('button'); btn.className='poke-option'; btn.disabled=!!inTeam||!b||b.team.length>=6;
-    btn.innerHTML=`<img src="${sprite(p.id)}" alt=""><span><strong>#${slug(p.id)} ${cap(p.name)}</strong><em>Gen ${genOf(p.id)}${inTeam?' · En equipo':''}</em></span>`;
-    btn.onclick=()=>addPokemon(p.id); $('pokemonResults').appendChild(btn);
-  });
-}
-function addPokemon(id){
-  const b=bosses[selectedBoss]; if(!b||b.team.length>=6||b.team.some(x=>x.id===id))return;
-  const p=pokemon.find(x=>x.id===id); b.team.push({id,name:p?.name||`Pokemon #${id}`,level:50,ability:'',item:'',moves:''}); saveAll(); renderEditor(); renderPokemon();
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function cap(s){return String(s).split('-').map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join('-');}
-
-$('newBoss').onclick=createBoss; $('emptyNewBoss').onclick=createBoss;
-$('pokemonSearch').oninput=renderPokemon; $('generationFilter').onchange=renderPokemon;
-$('bossName').oninput=e=>{if(selectedBoss!==null){bosses[selectedBoss].name=e.target.value;saveAll();renderBosses();}};
-$('saveBoss').onclick=()=>{saveAll();renderBosses();$('saveBoss').textContent='Guardado ✓';setTimeout(()=>$('saveBoss').textContent='Guardar Boss',1000);};
-$('deleteBoss').onclick=()=>{if(selectedBoss===null)return;if(confirm('¿Eliminar este Boss?')){bosses.splice(selectedBoss,1);saveAll();selectedBoss=null;renderBosses();$('bossEditor').hidden=true;$('emptyState').hidden=false;}};
-
-renderBosses();
-if(bosses.length) selectBoss(0);
-loadPokemon();
+const STORAGE_KEY = 'nuzlocke-tracker-v2';
+let pokemon=[]; let games=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); let selectedGame=null; let selectedBoss=null; let selectedBossType='Líder de gimnasio'; let pendingImage='';
+const $=id=>document.getElementById(id), slug=id=>String(id).padStart(3,'0'), sprite=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+function saveAll(){localStorage.setItem(STORAGE_KEY,JSON.stringify(games));} function genOf(id){for(const[g,[a,b]]of Object.entries(GEN_RANGES))if(id>=a&&id<=b)return Number(g);return 0;} function cap(s){return String(s).split('-').map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join('-');} function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));} function typeIcon(t){return {'Líder de gimnasio':'🥇','Alto Mando':'👑','Rival':'⚔️','Equipo enemigo':'☠️'}[t]||'👤';}
+function createGame(){const name=prompt('Nombre del juego:','Mi Nuzlocke');if(!name?.trim())return;games.push({name:name.trim(),bosses:[]});saveAll();selectGame(games.length-1);}
+function selectGame(i){selectedGame=i;selectedBoss=null;$('gamesEmpty').hidden=true;$('gameEditor').hidden=false;renderGames();renderGame();}
+function renderGames(){ $('gameCount').textContent=games.length;$('gameList').innerHTML='';games.forEach((g,i)=>{const b=document.createElement('button');b.className='boss-button'+(selectedGame===i?' active':'');b.innerHTML=`<strong>${escapeHtml(g.name||`Juego ${i+1}`)}</strong><small>${g.bosses.length} Boss${g.bosses.length===1?'':'es'}</small>`;b.onclick=()=>selectGame(i);$('gameList').appendChild(b);});}
+function renderGame(){const g=games[selectedGame];if(!g)return;$('pageTitle').textContent=g.name;$('gameName').value=g.name;$('bossCount').textContent=g.bosses.length;$('bossListInside').innerHTML='';$('noBosses').hidden=!!g.bosses.length;g.bosses.forEach((b,i)=>{const c=document.createElement('article');c.className='boss-card';const art=b.image?`<img src="${b.image}" alt="Diseño de ${escapeHtml(b.name)}">`:`<div class="boss-placeholder">${typeIcon(b.type)}</div>`;c.innerHTML=`<div class="boss-art">${art}</div><div class="boss-card-body"><span class="type-tag">${typeIcon(b.type)} ${escapeHtml(b.type)}</span><h3>${escapeHtml(b.name||`Boss ${i+1}`)}</h3><p>${b.team.length}/6 Pokémon</p><button class="secondary open-boss">Abrir Boss</button></div>`;c.querySelector('.open-boss').onclick=()=>openBoss(i);$('bossListInside').appendChild(c);});}
+function openBoss(i){selectedBoss=i;const g=games[selectedGame],b=g.bosses[i];$('gameEditor').hidden=true;$('pageTitle').textContent=`${g.name} · ${b.name}`;const e=document.createElement('div');e.id='bossDetail';e.className='boss-detail';e.innerHTML=`<div class="editor-head"><div><button id="backGame" class="back">← Volver a ${escapeHtml(g.name)}</button><span class="type-tag big">${typeIcon(b.type)} ${escapeHtml(b.type)}</span><label for="bossName">Nombre del Boss</label><input id="bossName" type="text" maxlength="60" value="${escapeHtml(b.name||'Boss')}"></div><button id="deleteBoss" class="danger">Eliminar Boss</button></div><div class="boss-design-row">${b.image?`<img src="${b.image}" alt="Diseño del Boss">`:''}<div><strong>Diseño del Boss</strong><p>${b.image?'Imagen adjunta.':'Sin imagen adjunta.'}</p><button id="changeBossImage" class="secondary">Adjuntar/cambiar imagen</button><input id="detailImage" type="file" accept="image/*" hidden></div></div><div class="toolbar"><input id="pokemonSearch" type="search" placeholder="Buscar Pokémon (Gen 1–6, #001–#721)..."><select id="generationFilter"><option value="all">Generaciones 1–6</option><option value="1">Gen 1 · Kanto</option><option value="2">Gen 2 · Johto</option><option value="3">Gen 3 · Hoenn</option><option value="4">Gen 4 · Sinnoh</option><option value="5">Gen 5 · Teselia</option><option value="6">Gen 6 · Kalos</option></select></div><div id="pokemonResults" class="pokemon-results"></div><h3>Equipo <span id="teamCount">0/6</span></h3><div id="team" class="team"></div><button id="saveBoss" class="primary save">Guardar Boss</button>`;$('gameEditor').after(e);$('backGame').onclick=()=>{e.remove();$('gameEditor').hidden=false;$('pageTitle').textContent=g.name;renderGame();};$('bossName').oninput=x=>{b.name=x.target.value;saveAll();renderGames();$('pageTitle').textContent=`${g.name} · ${b.name}`;};$('deleteBoss').onclick=()=>{if(confirm('¿Eliminar este Boss?')){g.bosses.splice(i,1);saveAll();e.remove();$('gameEditor').hidden=false;$('pageTitle').textContent=g.name;renderGame();}};$('saveBoss').onclick=()=>{saveAll();$('saveBoss').textContent='Guardado ✓';setTimeout(()=>$('saveBoss').textContent='Guardar Boss',1000);};$('changeBossImage').onclick=()=>$('detailImage').click();$('detailImage').onchange=x=>readImage(x.target.files[0],data=>{b.image=data;saveAll();openBoss(i);e.remove();});$('pokemonSearch').oninput=renderPokemon;$('generationFilter').onchange=renderPokemon;renderEditorTeam();renderPokemon();}
+function renderEditorTeam(){const b=games[selectedGame].bosses[selectedBoss];$('teamCount').textContent=`${b.team.length}/6`;$('team').innerHTML='';if(!b.team.length){$('team').innerHTML='<div class="empty-team">Añade Pokémon desde el buscador de arriba.</div>';return;}b.team.forEach((m,i)=>{const p=pokemon.find(x=>x.id===m.id)||{id:m.id,name:m.name};const c=document.createElement('article');c.className='team-card';c.innerHTML=`<img class="sprite" src="${sprite(p.id)}" alt=""><div class="team-main"><div class="team-title"><strong class="poke-name">#${slug(p.id)} ${cap(p.name)}</strong><button class="remove">×</button></div><div class="fields"><label>Nivel<input class="level" type="number" min="1" max="100" value="${m.level||50}"></label><label>Habilidad<input class="ability" value="${escapeHtml(m.ability||'')}" placeholder="Habilidad"></label><label>Objeto<input class="item" value="${escapeHtml(m.item||'')}" placeholder="Objeto"></label><label>Movimientos<input class="moves" value="${escapeHtml(m.moves||'')}" placeholder="Movimiento 1, Movimiento 2, ..."></label></div></div>`;c.querySelector('.remove').onclick=()=>{b.team.splice(i,1);saveAll();renderEditorTeam();renderPokemon();};['level','ability','item','moves'].forEach(k=>c.querySelector('.'+k).oninput=x=>{m[k]=x.target.value;saveAll();});$('team').appendChild(c);});}
+async function loadPokemon(){try{const r=await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${MAX_POKEMON}`),d=await r.json();pokemon=d.results.map((p,i)=>({id:i+1,name:p.name}));}catch(e){pokemon=Array.from({length:MAX_POKEMON},(_,i)=>({id:i+1,name:`Pokémon #${slug(i+1)}`}));}if($('pokemonResults'))renderPokemon();}
+function renderPokemon(){const box=$('pokemonResults');if(!box)return;const q=$('pokemonSearch').value.trim().toLowerCase(),gf=$('generationFilter').value,b=games[selectedGame].bosses[selectedBoss];const list=pokemon.filter(p=>(!q||p.name.includes(q)||String(p.id)===q.replace(/^#/,'')||slug(p.id)===q.replace(/^#/,''))&&(gf==='all'||String(genOf(p.id))===gf)).slice(0,60);box.innerHTML='';if(!list.length){box.innerHTML='<div class="empty-team">No se encontraron Pokémon.</div>';return;}list.forEach(p=>{const inTeam=b.team.some(x=>x.id===p.id),btn=document.createElement('button');btn.className='poke-option';btn.disabled=inTeam||b.team.length>=6;btn.innerHTML=`<img src="${sprite(p.id)}"><span><strong>#${slug(p.id)} ${cap(p.name)}</strong><em>Gen ${genOf(p.id)}${inTeam?' · En equipo':''}</em></span>`;btn.onclick=()=>addPokemon(p.id);box.appendChild(btn);});}
+function addPokemon(id){const b=games[selectedGame].bosses[selectedBoss];if(b.team.length>=6||b.team.some(x=>x.id===id))return;const p=pokemon.find(x=>x.id===id);b.team.push({id,name:p?.name||`Pokemon #${id}`,level:50,ability:'',item:'',moves:''});saveAll();renderEditorTeam();renderPokemon();}
+function openCreateBoss(){selectedBossType='Líder de gimnasio';pendingImage='';$('modalBossName').value='';$('bossImage').value='';$('imagePreview').innerHTML='Sin imagen seleccionada';document.querySelectorAll('#bossTypeChoices button').forEach(x=>x.classList.toggle('selected',x.dataset.type===selectedBossType));$('bossModal').hidden=false;}
+function closeCreateBoss(){$('bossModal').hidden=true;}function readImage(file,cb){if(!file)return;if(file.size>3*1024*1024){alert('La imagen es demasiado grande. Usa una de 3 MB o menos.');return;}const r=new FileReader();r.onload=()=>cb(r.result);r.readAsDataURL(file);}
+function confirmCreateBoss(){const g=games[selectedGame],name=$('modalBossName').value.trim()||`Boss ${g.bosses.length+1}`;g.bosses.push({name,type:selectedBossType,image:pendingImage,team:[]});saveAll();closeCreateBoss();renderGame();openBoss(g.bosses.length-1);}
+$('newGame').onclick=createGame;$('emptyNewGame').onclick=createGame;$('gameName').oninput=e=>{if(selectedGame!==null){games[selectedGame].name=e.target.value;saveAll();renderGames();$('pageTitle').textContent=e.target.value;}};$('deleteGame').onclick=()=>{if(selectedGame===null)return;if(confirm('¿Eliminar este juego y todos sus Bosses?')){games.splice(selectedGame,1);saveAll();selectedGame=null;$('gameEditor').hidden=true;$('gamesEmpty').hidden=false;$('pageTitle').textContent='Mis juegos';renderGames();}};$('newBoss').onclick=openCreateBoss;$('closeBossModal').onclick=closeCreateBoss;$('cancelBoss').onclick=closeCreateBoss;$('confirmBoss').onclick=confirmCreateBoss;document.querySelectorAll('#bossTypeChoices button').forEach(btn=>btn.onclick=()=>{selectedBossType=btn.dataset.type;document.querySelectorAll('#bossTypeChoices button').forEach(x=>x.classList.toggle('selected',x===btn));});$('bossImage').onchange=e=>readImage(e.target.files[0],data=>{pendingImage=data;$('imagePreview').innerHTML=`<img src="${data}" alt="Vista previa">`;});$('bossModal').addEventListener('click',e=>{if(e.target===$('bossModal'))closeCreateBoss();});
+renderGames();if(games.length)selectGame(0);else{$('gamesEmpty').hidden=false;$('gameEditor').hidden=true;}loadPokemon();
