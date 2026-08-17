@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nuzlocke Tracker - Boss Editor" />
+  <title>Nuzlocke Tracker — Boss Editor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">NUZLOCKE TRACKER</div>
+      <h1>Boss Editor</h1>
+    </div>
+    <button id="newBoss" class="primary">+ Nuevo Boss</button>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-head"><h2>Bosses</h2><span id="bossCount">0</span></div>
+      <div id="bossList" class="boss-list"></div>
+    </aside>
+
+    <section class="editor">
+      <div id="emptyState" class="empty-state">
+        <div class="pokeball">◉</div>
+        <h2>Crea tu primer Boss</h2>
+        <p>Añade hasta 6 Pokémon y configura nivel, habilidad, objeto y movimientos.</p>
+        <button id="emptyNewBoss" class="primary">Crear Boss</button>
+      </div>
+
+      <div id="bossEditor" hidden>
+        <div class="editor-head">
+          <div>
+            <label for="bossName">Nombre del Boss</label>
+            <input id="bossName" type="text" placeholder="Ej. Brock" maxlength="50" />
+          </div>
+          <button id="deleteBoss" class="danger">Eliminar</button>
+        </div>
+
+        <div class="toolbar">
+          <input id="pokemonSearch" type="search" placeholder="Buscar Pokémon (Gen 1–6, #001–#721)..." />
+          <select id="generationFilter">
+            <option value="all">Generaciones 1–6</option>
+            <option value="1">Gen 1 · Kanto</option>
+            <option value="2">Gen 2 · Johto</option>
+            <option value="3">Gen 3 · Hoenn</option>
+            <option value="4">Gen 4 · Sinnoh</option>
+            <option value="5">Gen 5 · Teselia</option>
+            <option value="6">Gen 6 · Kalos</option>
+          </select>
+        </div>
+
+        <div id="pokemonResults" class="pokemon-results"></div>
+        <h3>Equipo <span id="teamCount">0/6</span></h3>
+        <div id="team" class="team"></div>
+        <button id="saveBoss" class="primary save">Guardar Boss</button>
+      </div>
+    </section>
+  </main>
+
+  <template id="teamCardTemplate">
+    <article class="team-card">
+      <img class="sprite" alt="" />
+      <div class="team-main">
+        <div class="team-title"><strong class="poke-name"></strong><button class="remove" title="Quitar">×</button></div>
+        <div class="fields">
+          <label>Nivel <input class="level" type="number" min="1" max="100" value="50" /></label>
+          <label>Habilidad <input class="ability" type="text" placeholder="Habilidad" /></label>
+          <label>Objeto <input class="item" type="text" placeholder="Objeto" /></label>
+          <label>Movimientos <input class="moves" type="text" placeholder="Movimiento 1, Movimiento 2, ..." /></label>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
