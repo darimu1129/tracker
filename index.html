@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Nuzlocke Tracker - Boss Editor" />
+  <meta name="description" content="Nuzlocke Tracker — juegos y Boss Editor" />
   <title>Nuzlocke Tracker — Boss Editor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -11,69 +11,65 @@
   <header class="topbar">
     <div>
       <div class="eyebrow">NUZLOCKE TRACKER</div>
-      <h1>Boss Editor</h1>
+      <h1 id="pageTitle">Mis juegos</h1>
     </div>
-    <button id="newBoss" class="primary">+ Nuevo Boss</button>
+    <button id="newGame" class="primary">+ Nuevo juego</button>
   </header>
 
   <main class="layout">
     <aside class="sidebar">
-      <div class="sidebar-head"><h2>Bosses</h2><span id="bossCount">0</span></div>
-      <div id="bossList" class="boss-list"></div>
+      <div class="sidebar-head"><h2>Juegos</h2><span id="gameCount">0</span></div>
+      <div id="gameList" class="boss-list"></div>
     </aside>
 
     <section class="editor">
-      <div id="emptyState" class="empty-state">
+      <div id="gamesEmpty" class="empty-state">
         <div class="pokeball">◉</div>
-        <h2>Crea tu primer Boss</h2>
-        <p>Añade hasta 6 Pokémon y configura nivel, habilidad, objeto y movimientos.</p>
-        <button id="emptyNewBoss" class="primary">Crear Boss</button>
+        <h2>Crea tu primer juego</h2>
+        <p>Crea un juego con el nombre que quieras y dentro podrás organizar todos sus Bosses.</p>
+        <button id="emptyNewGame" class="primary">Crear juego</button>
       </div>
 
-      <div id="bossEditor" hidden>
-        <div class="editor-head">
+      <div id="gameEditor" hidden>
+        <div class="game-head">
           <div>
-            <label for="bossName">Nombre del Boss</label>
-            <input id="bossName" type="text" placeholder="Ej. Brock" maxlength="50" />
+            <label for="gameName">Nombre del juego</label>
+            <input id="gameName" type="text" placeholder="Ej. Pokémon Esmeralda" maxlength="80" />
           </div>
-          <button id="deleteBoss" class="danger">Eliminar</button>
+          <div class="game-actions">
+            <button id="deleteGame" class="danger">Eliminar juego</button>
+            <button id="newBoss" class="primary">+ Crear Boss</button>
+          </div>
         </div>
 
-        <div class="toolbar">
-          <input id="pokemonSearch" type="search" placeholder="Buscar Pokémon (Gen 1–6, #001–#721)..." />
-          <select id="generationFilter">
-            <option value="all">Generaciones 1–6</option>
-            <option value="1">Gen 1 · Kanto</option>
-            <option value="2">Gen 2 · Johto</option>
-            <option value="3">Gen 3 · Hoenn</option>
-            <option value="4">Gen 4 · Sinnoh</option>
-            <option value="5">Gen 5 · Teselia</option>
-            <option value="6">Gen 6 · Kalos</option>
-          </select>
-        </div>
-
-        <div id="pokemonResults" class="pokemon-results"></div>
-        <h3>Equipo <span id="teamCount">0/6</span></h3>
-        <div id="team" class="team"></div>
-        <button id="saveBoss" class="primary save">Guardar Boss</button>
+        <div class="section-title"><div><span class="eyebrow">BOSSES</span><h2>Entrenadores y combates</h2></div><span id="bossCount" class="count-pill">0</span></div>
+        <div id="bossListInside" class="boss-grid"></div>
+        <div id="noBosses" class="empty-team">Todavía no hay Bosses en este juego. Pulsa «Crear Boss» para añadir el primero.</div>
       </div>
     </section>
   </main>
 
-  <template id="teamCardTemplate">
-    <article class="team-card">
-      <img class="sprite" alt="" />
-      <div class="team-main">
-        <div class="team-title"><strong class="poke-name"></strong><button class="remove" title="Quitar">×</button></div>
-        <div class="fields">
-          <label>Nivel <input class="level" type="number" min="1" max="100" value="50" /></label>
-          <label>Habilidad <input class="ability" type="text" placeholder="Habilidad" /></label>
-          <label>Objeto <input class="item" type="text" placeholder="Objeto" /></label>
-          <label>Movimientos <input class="moves" type="text" placeholder="Movimiento 1, Movimiento 2, ..." /></label>
-        </div>
+  <!-- Modal de creación/edición de Boss -->
+  <div id="bossModal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><div><span class="eyebrow">NUEVO BOSS</span><h2>Define el tipo de Boss</h2></div><button id="closeBossModal" class="modal-close">×</button></div>
+      <label>Tipo de Boss</label>
+      <div id="bossTypeChoices" class="type-grid">
+        <button data-type="Líder de gimnasio">🥇<strong>Líder de gimnasio</strong><small>Un líder de gimnasio</small></button>
+        <button data-type="Alto Mando">👑<strong>Alto Mando</strong><small>Miembro del Alto Mando</small></button>
+        <button data-type="Rival">⚔️<strong>Rival</strong><small>Un combate contra un rival</small></button>
+        <button data-type="Equipo enemigo">☠️<strong>Equipo enemigo</strong><small>Un miembro o jefe del equipo</small></button>
       </div>
-    </article>
-  </template>
+      <label for="modalBossName">Nombre del Boss</label>
+      <input id="modalBossName" type="text" placeholder="Ej. Brock" maxlength="60" />
+      <label for="bossImage">Imagen del diseño del Boss <span class="muted">(opcional)</span></label>
+      <div class="image-upload">
+        <input id="bossImage" type="file" accept="image/*" />
+        <div id="imagePreview" class="image-preview">Sin imagen seleccionada</div>
+      </div>
+      <div class="modal-actions"><button id="cancelBoss" class="secondary">Cancelar</button><button id="confirmBoss" class="primary">Crear Boss</button></div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
